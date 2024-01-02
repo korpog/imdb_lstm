@@ -107,7 +107,7 @@ class LSTM_NN(nn.Module):
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
         self.lstm = nn.LSTM(input_size=emdedding_dim, hidden_size=self.hidden_dim,
                             num_layers=no_layers, batch_first=True)
-        self.droput = nn.Dropout(0.2)
+        self.droput = nn.Dropout(0.3)
         self.fc = nn.Linear(self.hidden_dim, output_dim)
         self.sig = nn.Sigmoid()
 
@@ -139,9 +139,9 @@ class LSTM_NN(nn.Module):
 
 no_layers = 2
 vocab_size = len(vocab) + 1
-embedding_dim = 32
+embedding_dim = 64
 output_dim = 1
-hidden_dim = 32
+hidden_dim = 128
 
 model = LSTM_NN(no_layers, vocab_size, hidden_dim,
                 embedding_dim, drop_prob=0.5)
@@ -149,7 +149,7 @@ model = LSTM_NN(no_layers, vocab_size, hidden_dim,
 model.to(device)
 print(model)
 
-learning_rate = 0.05
+learning_rate = 0.01
 criterion = nn.BCELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -227,4 +227,4 @@ for epoch in range(epochs):
         f'Training accuracy: {epoch_train_accuracy:.3f} \t Validation accuracy: {epoch_valid_accuracy:.3f}')
     print(10*'=')
 
-torch.save(model.state_dict(), 'state_dict.pt')
+torch.save(model.state_dict(), 'model_state_dict.pt')
