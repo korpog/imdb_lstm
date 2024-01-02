@@ -5,10 +5,8 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from collections import Counter
 from sklearn.model_selection import train_test_split
-from spacy.lang.en import English
 from spacy.lang.en.stop_words import STOP_WORDS
 
-nlp = English()
 df = pd.read_csv('data/IMDB Dataset.csv')
 
 X, y = df['review'].values, df['sentiment'].values
@@ -48,8 +46,17 @@ def tokenize(x_train, x_test, y_train, y_test):
     label_train = [1 if label == 'positive' else 0 for label in y_train]
     label_test = [1 if label == 'positive' else 0 for label in y_test]
 
-    return np.array(final_x_train), np.array(final_x_test), np.array(label_train), np.array(label_test), vocab
+    return final_x_train, final_x_test, label_train, label_test, vocab
 
+def padding(sentences, length):
+    features = np.zeros((len(sentences), length), dtype=int)
+    for i, review in enumerate(sentences):
+         if len(review) != 0:
+              features[i, -len(review):] = np.array(review)[:length]
+    return features
 
-x_train, x_test, y_train, y_test, vocab = tokenize(
-    x_train, x_test, y_train, y_test)
+x_train, x_test, y_train, y_test, vocab = tokenize(x_train, x_test, y_train, y_test)
+
+x_train_padded = padding(x_train, 500)
+x_test_padded = padding(x_test, 500)
+
