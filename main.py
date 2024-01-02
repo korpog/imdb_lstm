@@ -68,6 +68,8 @@ x_train, x_test, y_train, y_test, vocab = tokenize(
 
 x_train_padded = padding(x_train, 500)
 x_test_padded = padding(x_test, 500)
+y_train = np.array(y_train)
+y_test = np.array(y_test)
 
 train_data = TensorDataset(torch.from_numpy(
     x_train_padded), torch.from_numpy(y_train))
@@ -82,12 +84,12 @@ test_loader = DataLoader(test_data, shuffle=True, batch_size=batch_size)
 data_iterator = iter(train_loader)
 sample_x, sample_y = next(data_iterator)
 
-print('Sample input size: ', sample_x.size())  # batch_size, seq_length
-print('Sample input: \n', sample_x)
-print('Sample output: \n', sample_y)
+# print('Sample input size: ', sample_x.size())
+# print('Sample input: \n', sample_x)
+# print('Sample output: \n', sample_y)
 
 no_layers = 2
-vocab_size = len(vocab) + 1  # extra 1 for padding
+vocab_size = len(vocab) + 1
 embedding_dim = 64
 output_dim = 1
 hidden_dim = 256
@@ -137,9 +139,92 @@ class LSTM_NN(nn.Module):
 
 no_layers = 2
 vocab_size = len(vocab) + 1
-embedding_dim = 64
+embedding_dim = 32
 output_dim = 1
-hidden_dim = 256
+hidden_dim = 32
 
 model = LSTM_NN(no_layers, vocab_size, hidden_dim,
                 embedding_dim, drop_prob=0.5)
+
+model.to(device)
+print(model)
+
+learning_rate = 0.05
+criterion = nn.BCELoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+
+
+def accuracy(prediction, label):
+    pred = torch.round(prediction.squeeze())
+    return torch.sum(pred == label.squeeze()).item()
+
+
+grad_clip = 5
+epochs = 5
+loss_min = np.Inf
+
+train_losses, valid_losses = [], []
+train_accuracy, valid_accuracy = [], []
+
+for epoch in range(epochs):
+    tr_losses = []
+    tr_acc = 0.0
+    model.train()
+
+    hidden = model.init_hidden(batch_size)
+
+    for reviews, labels in train_loader:
+        reviews, labels = reviews.to(device), labels.to(device)
+        hidden = tuple([e.data for e in hidden])
+
+        model.zero_grad()
+        output, hidden = model(reviews, hidden)
+
+        loss = criterion(output.squeeze(), labels.float())
+        loss.backward()
+        tr_losses.append(loss.item())
+
+        acc = accuracy(output, labels)
+        tr_acc += acc
+        nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+        optimizer.step()
+
+    val_losses = []
+    val_acc = 0.0
+    model.eval()
+
+    hidden_valid = model.init_hidden(batch_size)
+
+    for reviews, labels in test_loader:
+        reviews, labels = reviews.to(device), labels.to(device)
+        hidden_valid = tuple([e.data for e in hidden_valid])
+
+        model.zero_grad()
+        output, hidden_valid = model(reviews, hidden_valid)
+
+        loss = criterion(output.squeeze(), labels.float())
+        val_losses.append(loss.item())
+
+        acc = accuracy(output, labels)
+        val_acc += acc
+
+    epoch_train_losses = np.mean(tr_losses)
+    epoch_valid_losses = np.mean(val_losses)
+
+    epoch_train_accuracy = tr_acc/len(train_loader.dataset)
+    epoch_valid_accuracy = val_acc/len(test_loader.dataset)
+
+    train_losses.append(epoch_train_losses)
+    valid_losses.append(epoch_valid_losses)
+
+    train_accuracy.append(epoch_train_accuracy)
+    valid_accuracy.append(epoch_valid_accuracy)
+
+    print(f'Epoch: {epoch+1}')
+    print(
+        f'Training loss: {epoch_train_losses:.3f} \t\t Validation loss: {epoch_valid_losses:.3f}')
+    print(
+        f'Training accuracy: {epoch_train_accuracy:.3f} \t Validation accuracy: {epoch_valid_accuracy:.3f}')
+    print(10*'=')
+
+torch.save(model.state_dict(), 'state_dict.pt')
