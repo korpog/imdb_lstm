@@ -38,7 +38,7 @@ def tokenize(x_train, x_test, y_train, y_test):
                 word_list.append(word)
 
     corpus = Counter(word_list)
-    corpus_ = sorted(corpus, key=corpus.get, reverse=True)[:1000]
+    corpus_ = sorted(corpus, key=corpus.get, reverse=True)[:2000]
     vocab = {w: i+1 for i, w in enumerate(corpus_)}
 
     final_x_train, final_x_test = [], []
@@ -84,14 +84,10 @@ test_loader = DataLoader(test_data, shuffle=True, batch_size=batch_size)
 data_iterator = iter(train_loader)
 sample_x, sample_y = next(data_iterator)
 
-# print('Sample input size: ', sample_x.size())
-# print('Sample input: \n', sample_x)
-# print('Sample output: \n', sample_y)
-
-no_layers = 2
-vocab_size = len(vocab) + 1
 embedding_dim = 64
 output_dim = 1
+no_layers = 4
+vocab_size = len(vocab) + 1
 hidden_dim = 256
 
 
@@ -137,19 +133,13 @@ class LSTM_NN(nn.Module):
         return hidden
 
 
-no_layers = 2
-vocab_size = len(vocab) + 1
-embedding_dim = 64
-output_dim = 1
-hidden_dim = 128
-
 model = LSTM_NN(no_layers, vocab_size, hidden_dim,
                 embedding_dim, drop_prob=0.5)
 
 model.to(device)
 print(model)
 
-learning_rate = 0.01
+learning_rate = 0.001
 criterion = nn.BCELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
